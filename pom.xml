@@ -5,8 +5,8 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>crowdar</groupId>
-    <artifactId>crowdar-automation</artifactId>
+    <groupId>devsu</groupId>
+    <artifactId>devsu-challenge</artifactId>
     <version>1.0</version>
 
     <properties>
@@ -106,6 +106,9 @@
                     <includes>
                         <include>**/*Runner.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
 

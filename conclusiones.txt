@@ -1,0 +1,317 @@
+========================================================
+  DEVSU CHALLENGE - Hallazgos y Conclusiones
+  Automatizacion E2E y API
+========================================================
+
+========================================================
+  ESPAÑOL
+========================================================
+
+========================================================
+  EJERCICIO 1 - AUTOMATIZACION E2E — OPCION 2 (SauceDemo)
+========================================================
+
+Opcion seleccionada del challenge: AUTOMATIZACION E2E — OPCION 2.
+
+Por que Selenium WebDriver:
+  Se eligio Selenium WebDriver por ser la herramienta estandar en entornos
+  corporativos, con amplio soporte de la industria, mayor comunidad, integracion
+  nativa con CI/CD y mejor escalabilidad para proyectos de mayor tamano frente
+  a otras alternativas mas ligadas a ecosistemas especificos.
+
+Por que JUnit Platform:
+  Se eligio JUnit como runner para Cucumber con el objetivo de unificar el
+  motor de ejecucion con el ejercicio de API, donde Karate corre sobre JUnit 5.
+  Esto permite ejecutar ambas suites bajo el mismo ecosistema de testing sin
+  introducir dependencias adicionales ni configuraciones divergentes.
+
+HALLAZGOS
+---------
+
+1. Estabilidad del sitio bajo prueba
+   SauceDemo (https://www.saucedemo.com/) es un entorno de pruebas disenado
+   especificamente para automatizacion, lo que lo hace altamente estable.
+   Los atributos data-test en los elementos HTML facilitan locators robustos
+   y menos susceptibles a cambios de estilo o estructura visual.
+
+2. Flujo de compra completo
+   El flujo end-to-end cubre login, agregado de dos productos desde el listado
+   de inventario, visualizacion del carrito, completado del formulario de datos
+   personales (nombre, apellido y codigo postal), revision del resumen de orden
+   y confirmacion final. Todos los pasos fueron automatizados y validados con
+   assertions explicitas en cada transicion de pagina.
+
+3. Problema de compatibilidad con React y Selenium
+   SauceDemo utiliza React para su interfaz. Se identifico que el metodo nativo
+   sendKeys() de Selenium actualiza visualmente los campos del formulario de
+   checkout, pero no dispara el evento onChange de React. Como consecuencia,
+   React mantiene los campos como vacios en su estado interno y bloquea la
+   navegacion al hacer submit.
+   La solucion implementada fue usar el setter nativo de HTMLInputElement via
+   JavascriptExecutor para actualizar el valor y disparar el evento input con
+   bubbles:true, lo que permite a React reconocer el cambio y habilitar la
+   navegacion al siguiente paso del checkout.
+
+4. Botones de navegacion y JavascriptExecutor
+   Los botones Continue y Finish del flujo de checkout tampoco responden al
+   click nativo de Selenium en todos los contextos. Se resolvio usando
+   JavascriptExecutor para ejecutar el click directamente sobre el elemento,
+   garantizando que la accion se procese correctamente en el contexto de React.
+
+5. Captura automatica de evidencias
+   Se implemento captura automatica de screenshots ante escenarios fallidos
+   mediante un Hook @After de Cucumber, lo que facilita el diagnostico de
+   fallos durante la ejecucion en entornos CI/CD.
+
+CONCLUSIONES
+------------
+
+- Selenium WebDriver con Page Object Model es una arquitectura solida para
+  automatizacion UI mantenible y escalable.
+
+- La separacion en capas (core, pages, stepdefinitions) facilita el
+  mantenimiento: un cambio en la UI solo requiere modificar el Page Object,
+  sin tocar los steps ni los feature files.
+
+- Cucumber en combinacion con Gherkin actua como documentacion viva del
+  comportamiento del sistema, accesible para perfiles no tecnicos.
+
+- El uso de WebDriverManager elimina la necesidad de gestionar manualmente
+  los binarios del driver, reduciendo la friccion en configuraciones de
+  distintos entornos.
+
+- En aplicaciones que usan frameworks reactivos (React, Angular, Vue),
+  es necesario considerar estrategias de interaccion compatibles con el
+  sistema de eventos sinteticos, mas alla del API estandar de Selenium.
+
+========================================================
+  EJERCICIO 2 - AUTOMATIZACION APIS — OPCION 3 (PetStore)
+========================================================
+
+Opcion seleccionada del challenge: AUTOMATIZACION APIS — OPCION 3.
+
+HALLAZGOS
+---------
+
+1. API publica con comportamiento permisivo
+   La API de PetStore (https://petstore.swagger.io/v2) es un entorno de
+   demostracion publico. Se identifico que no aplica validaciones estrictas
+   de unicidad: permite crear usuarios con el mismo ID multiples veces sin
+   devolver error. Esto es caracteristico de una API de demo, no de una API
+   productiva.
+
+2. Respuestas con estructura inconsistente
+   Las operaciones POST, PUT y DELETE devuelven un envelope generico con
+   campos code, type y message, mientras que GET /user/{username} devuelve
+   directamente el objeto del usuario. Esta inconsistencia es un hallazgo
+   de diseno de la API que en un proyecto real se reportaria como deuda tecnica.
+
+3. Idempotencia garantizada con UUID dinamico
+   Para evitar conflictos entre ejecuciones sucesivas, el username se genera
+   dinamicamente con UUID en cada ejecucion del test. Esto garantiza que el
+   ciclo de vida completo (crear, buscar, actualizar, eliminar) se ejecute
+   siempre con datos frescos y sin dependencia del estado previo de la API.
+
+4. Ciclo de vida completo en un solo escenario
+   Los 5 casos de prueba (crear, buscar, actualizar, buscar actualizado,
+   eliminar) se implementaron como pasos encadenados dentro de un unico
+   escenario Karate. Esto refleja la naturaleza secuencial del flujo: cada
+   operacion depende del resultado de la anterior y comparten el mismo
+   username generado al inicio.
+
+5. Disponibilidad del servidor
+   Al tratarse de una API publica sin SLA, puede presentar latencia variable
+   o interrupciones momentaneas. Se recomienda considerar reintentos o
+   aumentar timeouts en entornos de CI/CD.
+
+CONCLUSIONES
+------------
+
+- Karate DSL es una herramienta altamente expresiva para pruebas de APIs
+  REST: permite definir request, response, assertions y variables en el
+  mismo archivo de feature, sin necesidad de codigo Java adicional.
+
+- La capacidad de Karate de encadenar multiples llamadas HTTP dentro de
+  un mismo escenario lo hace ideal para flujos de API con dependencias
+  de estado entre operaciones.
+
+- Las validaciones con match en Karate son mas legibles y expresivas que
+  las assertions tradicionales, permitiendo verificar estructuras JSON
+  complejas con pocas lineas.
+
+- Para APIs productivas se recomienda complementar estas pruebas con
+  validacion de schemas JSON (usando match schema en Karate) y pruebas
+  de contrato (contract testing) para detectar cambios breaking en los
+  contratos de la API.
+
+- El uso de variables dinamicas (UUID) es una buena practica que garantiza
+  la idempotencia de los tests y facilita su ejecucion en paralelo sin
+  interferencias entre instancias.
+
+========================================================
+  CONCLUSION GENERAL
+========================================================
+
+El challenge permitio validar la integracion de dos enfoques complementarios
+de automatizacion de calidad: pruebas funcionales de interfaz de usuario con
+Selenium + Cucumber para el flujo de compra E2E, y pruebas de servicios REST
+con Karate para el ciclo de vida de usuarios en la API de PetStore.
+
+Ambos frameworks coexisten dentro del mismo proyecto Maven, compartiendo
+configuracion e infraestructura, lo que demuestra que es posible centralizar
+la estrategia de testing en un unico repositorio mantenible y ejecutable
+de forma independiente o conjunta segun las necesidades del equipo.
+
+========================================================
+  ENGLISH
+========================================================
+
+========================================================
+  EXERCISE 1 - E2E AUTOMATION — OPTION 2 (SauceDemo)
+========================================================
+
+Selected challenge option: E2E AUTOMATION — OPTION 2.
+
+Why Selenium WebDriver:
+  Selenium WebDriver was chosen for being the standard tool in corporate
+  environments, with broad industry support, large community, native CI/CD
+  integration and better scalability for larger projects compared to other
+  alternatives more tied to specific ecosystems.
+
+Why JUnit Platform:
+  JUnit was chosen as the Cucumber runner in order to unify the execution
+  engine with the API exercise, where Karate runs on JUnit 5. Both suites
+  coexist in the same ecosystem without additional dependencies or
+  divergent configurations.
+
+FINDINGS
+--------
+
+1. Stability of the system under test
+   SauceDemo (https://www.saucedemo.com/) is a testing environment designed
+   specifically for automation, making it highly stable. The data-test
+   attributes on HTML elements provide robust locators that are less
+   susceptible to style or visual structure changes.
+
+2. Complete purchase flow
+   The end-to-end flow covers login, adding two products from the inventory
+   listing, viewing the cart, filling in personal data (first name, last name
+   and zip code), reviewing the order summary and final confirmation. All
+   steps were automated and validated with explicit assertions on each page
+   transition.
+
+3. React and Selenium compatibility issue
+   SauceDemo uses React for its interface. It was identified that Selenium's
+   native sendKeys() method visually updates the checkout form fields, but
+   does not trigger React's onChange event. As a result, React keeps the
+   fields as empty in its internal state and blocks navigation on submit.
+   The implemented solution was to use the native HTMLInputElement setter
+   via JavascriptExecutor to update the value and dispatch the input event
+   with bubbles:true, allowing React to recognize the change and enable
+   navigation to the next checkout step.
+
+4. Navigation buttons and JavascriptExecutor
+   The Continue and Finish buttons in the checkout flow also do not respond
+   to Selenium's native click in all contexts. This was resolved by using
+   JavascriptExecutor to execute the click directly on the element, ensuring
+   the action is processed correctly in the React context.
+
+5. Automatic evidence capture
+   Automatic screenshot capture was implemented for failed scenarios via a
+   Cucumber @After Hook, facilitating failure diagnosis during CI/CD
+   environment execution.
+
+CONCLUSIONS
+-----------
+
+- Selenium WebDriver with Page Object Model is a solid architecture for
+  maintainable and scalable UI automation.
+
+- The layer separation (core, pages, stepdefinitions) facilitates
+  maintenance: a change in the UI only requires modifying the Page Object,
+  without touching the steps or feature files.
+
+- Cucumber combined with Gherkin acts as living documentation of the
+  system behavior, accessible to non-technical profiles.
+
+- The use of WebDriverManager eliminates the need to manually manage
+  driver binaries, reducing friction in multi-environment setups.
+
+- In applications using reactive frameworks (React, Angular, Vue),
+  it is necessary to consider interaction strategies compatible with the
+  synthetic event system, beyond Selenium's standard API.
+
+========================================================
+  EXERCISE 2 - API AUTOMATION — OPTION 3 (PetStore)
+========================================================
+
+Selected challenge option: API AUTOMATION — OPTION 3.
+
+FINDINGS
+--------
+
+1. Public API with permissive behavior
+   The PetStore API (https://petstore.swagger.io/v2) is a public demonstration
+   environment. It was identified that it does not apply strict uniqueness
+   validations: it allows creating users with the same ID multiple times
+   without returning an error. This is characteristic of a demo API, not a
+   production API.
+
+2. Responses with inconsistent structure
+   POST, PUT and DELETE operations return a generic envelope with code, type
+   and message fields, while GET /user/{username} returns the user object
+   directly. This inconsistency is a design finding that in a real project
+   would be reported as technical debt.
+
+3. Idempotency guaranteed with dynamic UUID
+   To avoid conflicts between successive runs, the username is generated
+   dynamically with UUID on each test execution. This ensures that the
+   complete lifecycle (create, find, update, delete) always runs with fresh
+   data and without dependency on the previous API state.
+
+4. Complete lifecycle in a single scenario
+   The 5 test cases (create, find, update, find updated, delete) were
+   implemented as chained steps within a single Karate scenario. This reflects
+   the sequential nature of the flow: each operation depends on the result of
+   the previous one and they share the same username generated at the start.
+
+5. Server availability
+   Being a public API without SLA, it may experience variable latency or
+   momentary interruptions. It is recommended to consider retries or increase
+   timeouts in CI/CD environments.
+
+CONCLUSIONS
+-----------
+
+- Karate DSL is a highly expressive tool for REST API testing: it allows
+  defining request, response, assertions and variables in the same feature
+  file, without the need for additional Java code.
+
+- Karate's ability to chain multiple HTTP calls within the same scenario
+  makes it ideal for API flows with state dependencies between operations.
+
+- Karate's match validations are more readable and expressive than
+  traditional assertions, allowing complex JSON structures to be verified
+  with few lines.
+
+- For production APIs it is recommended to complement these tests with
+  JSON schema validation (using match schema in Karate) and contract testing
+  to detect breaking changes in API contracts.
+
+- The use of dynamic variables (UUID) is a good practice that guarantees
+  test idempotency and facilitates parallel execution without interference
+  between instances.
+
+========================================================
+  GENERAL CONCLUSION
+========================================================
+
+The challenge validated the integration of two complementary quality
+automation approaches: functional UI tests with Selenium + Cucumber for
+the E2E purchase flow, and REST service tests with Karate for the user
+lifecycle in the PetStore API.
+
+Both frameworks coexist within the same Maven project, sharing configuration
+and infrastructure, demonstrating that it is possible to centralize the
+testing strategy in a single maintainable repository executable independently
+or together according to team needs.

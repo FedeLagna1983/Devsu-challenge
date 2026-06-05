@@ -1,6 +1,6 @@
 function fn() {
   var config = {
-    mercadoLibreBaseUrl: 'https://www.mercadolibre.com.ar'
+    petStoreBaseUrl: 'https://petstore.swagger.io/v2'
   };
 
   return config;
